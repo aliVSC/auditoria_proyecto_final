@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Finalizar Compra</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header><h1>AUTHENTIC</h1></header>
+  <h2>Confirmación de Compra</h2>
+
+  <form action="/finalizar-compra" method="POST" style="text-align: center;">
+    <label for="correo">Tu correo:</label>
+    <input type="email" name="correo" id="correo" required>
+
+    <table style="margin:auto;">
+      <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+      <% let total = 0; %>
+      <% carrito.forEach(p => { 
+        let subtotal = p.precio * p.cantidad; 
+        total += subtotal;
+      %>
+        <tr>
+          <td><%= p.nombre %></td>
+          <td><%= p.cantidad %></td>
+          <td>$<%= p.precio.toFixed(2) %></td>
+          <td>$<%= subtotal.toFixed(2) %></td>
+        </tr>
+      <% }); %>
+    </table>
+
+    <h3>Total: $<%= total.toFixed(2) %></h3>
+    <button type="submit">Confirmar Compra</button>
+  </form>
+
+  <footer><p>© 2025 AUTHENTIC</p></footer>
+</body>
+</html>

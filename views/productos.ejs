@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Productos - AUTHENTIC</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header><h1>AUTHENTIC - Productos</h1></header>
+  <h2>Catálogo</h2>
+
+  <div class="productos" style="max-width: 800px; margin: auto;">
+    <% productos.forEach(p => { %>
+      <div class="producto" style="border: 1px solid #ccc; margin: 15px 0; padding: 15px; border-radius: 5px;">
+        <h3><%= p.nombre %></h3>
+        <p><%= p.descripcion %></p>
+        <p><strong>Precio:</strong> $<%= p.precio.toFixed(2) %></p>
+
+        <form action="/comprar" method="POST">
+          <input type="hidden" name="productoId" value="<%= p.id %>">
+          <input type="email" name="usuarioCorreo" required placeholder="Tu correo para registrar la compra">
+          <input type="number" name="cantidad" min="1" max="<%= p.stock %>" value="1" required>
+          <button type="submit">Comprar</button>
+        </form>
+      </div>
+    <% }); %>
+  </div>
+
+  <footer><p>© 2025 AUTHENTIC</p></footer>
+</body>
+</html>

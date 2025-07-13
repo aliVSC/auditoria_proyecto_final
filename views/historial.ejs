@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Historial de Compras - AUTHENTIC</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header><h1>AUTHENTIC</h1></header>
+  <h2>Historial de Compras</h2>
+
+  <% if (compras.length === 0) { %>
+    <p style="text-align:center;">No se encontraron compras para <strong><%= correo %></strong>.</p>
+  <% } else { %>
+    <table style="margin:auto; border-collapse: collapse; width: 80%;">
+      <thead>
+        <tr style="background-color: #000; color: white;">
+          <th>Fecha</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Precio Unitario</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% compras.forEach(c => { %>
+          <tr>
+            <td><%= new Date(c.fecha).toLocaleString() %></td>
+            <td><%= c.nombre %></td>
+            <td><%= c.cantidad %></td>
+            <td>$<%= c.precio_unitario.toFixed(2) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <footer><p>© 2025 AUTHENTIC</p></footer>
+</body>
+</html>

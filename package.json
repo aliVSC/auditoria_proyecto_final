@@ -1,0 +1,29 @@
+{
+  "name": "auditoria_sistemas",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliVSC/auditoria_proyecto_final.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aliVSC/auditoria_proyecto_final/issues"
+  },
+  "homepage": "https://github.com/aliVSC/auditoria_proyecto_final#readme",
+  "description": "",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "mssql": "^11.0.1",
+    "pdfkit": "^0.17.1"
+  }
+}

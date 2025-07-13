@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro - AUTHENTIC</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+<body>
+  <header><h1>AUTHENTIC</h1></header>
+  <h2>Regístrate</h2>
+
+  <form action="/registro" method="POST">
+    <input type="text" name="cedula" required placeholder="Cédula" maxlength="10" />
+    <input type="text" name="nombres" required placeholder="Nombres" />
+    <input type="text" name="apellidos" required placeholder="Apellidos" />
+    <input type="date" name="fechaNacimiento" required />
+    <input type="email" name="correo" required placeholder="Correo electrónico" />
+    <input type="password" name="contrasena" required placeholder="Contraseña" minlength="6" />
+    <button type="submit">Registrar</button>
+  </form>
+
+  <div class="registro">
+    <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a></p>
+  </div>
+
+  <footer><p>© 2025 AUTHENTIC</p></footer>
+</body>
+</html>
