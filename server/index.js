@@ -1,3 +1,4 @@
+// index.js
 const express = require("express");
 const path = require("path");
 const sql = require("mssql");
@@ -12,19 +13,14 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Motor de plantillas
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../views"));
-
-// Archivos públicos
 app.use(express.static(path.join(__dirname, "../public")));
 
-// Página de inicio (registro)
 app.get("/", (req, res) => {
   res.redirect("/registro");
 });
 
-// Página de registro
 app.get("/registro", (req, res) => {
   res.render("registro");
 });
@@ -38,9 +34,7 @@ app.post("/registro", async (req, res) => {
     await sql.connect(config);
 
     const result = await sql.query`SELECT * FROM Usuarios WHERE cedula = ${cedula}`;
-    if (result.recordset.length > 0) {
-      return res.send("La cédula ya está registrada.");
-    }
+    if (result.recordset.length > 0) return res.send("La cédula ya está registrada.");
 
     await sql.query`
       INSERT INTO Usuarios (cedula, nombres, apellidos, fecha_nacimiento, correo, contrasena)
@@ -49,14 +43,12 @@ app.post("/registro", async (req, res) => {
 
     await registrarAuditoria(correo, 'Registro de nuevo usuario', ip, navegador);
     res.redirect("/login");
-
   } catch (error) {
     console.error("Error en registro:", error);
     res.status(500).send("Error al registrar usuario.");
   }
 });
 
-// Página de login
 app.get("/login", (req, res) => {
   res.render("login");
 });
@@ -68,7 +60,6 @@ app.post("/login", async (req, res) => {
 
   try {
     await sql.connect(config);
-
     const result = await sql.query`
       SELECT * FROM Usuarios WHERE correo = ${correo} AND contrasena = ${contrasena}
     `;
@@ -79,14 +70,12 @@ app.post("/login", async (req, res) => {
     } else {
       res.status(401).send("Correo o contraseña incorrectos.");
     }
-
   } catch (error) {
     console.error("Error en login:", error);
     res.status(500).send("Error en el servidor.");
   }
 });
 
-// Mostrar lista de productos
 app.get("/productos", async (req, res) => {
   try {
     await sql.connect(config);
@@ -97,7 +86,6 @@ app.get("/productos", async (req, res) => {
   }
 });
 
-// Agregar al carrito (simulado con formulario de compra)
 app.post("/comprar", async (req, res) => {
   const { usuarioCorreo, productoId, cantidad } = req.body;
   const ip = req.ip;
@@ -105,25 +93,16 @@ app.post("/comprar", async (req, res) => {
 
   try {
     await sql.connect(config);
-
-    const usuarioResult = await sql.query`
-      SELECT id FROM Usuarios WHERE correo = ${usuarioCorreo}
-    `;
+    const usuarioResult = await sql.query`SELECT id FROM Usuarios WHERE correo = ${usuarioCorreo}`;
     const usuarioId = usuarioResult.recordset[0]?.id;
     if (!usuarioId) return res.status(404).send("Usuario no encontrado");
 
-    const productoResult = await sql.query`
-      SELECT * FROM Productos WHERE id = ${productoId}
-    `;
+    const productoResult = await sql.query`SELECT * FROM Productos WHERE id = ${productoId}`;
     const producto = productoResult.recordset[0];
     if (!producto) return res.status(404).send("Producto no encontrado");
 
     const precioUnitario = producto.precio;
-
-    // Registrar compra
-    const compra = await sql.query`
-      INSERT INTO Compras (usuario_id) OUTPUT INSERTED.id VALUES (${usuarioId})
-    `;
+    const compra = await sql.query`INSERT INTO Compras (usuario_id) OUTPUT INSERTED.id VALUES (${usuarioId})`;
     const compraId = compra.recordset[0].id;
 
     await sql.query`
@@ -133,55 +112,21 @@ app.post("/comprar", async (req, res) => {
 
     await registrarAuditoria(usuarioCorreo, `Compra realizada (Producto ${productoId}, cantidad ${cantidad})`, ip, navegador);
     res.send("Compra realizada con éxito");
-
   } catch (error) {
     console.error("Error en la compra:", error);
     res.status(500).send("Error al realizar compra.");
   }
 });
 
-
-// Historial de compras de un usuario
 app.get("/historial", async (req, res) => {
   const correo = req.query.correo;
 
   try {
     await sql.connect(config);
-
-    const usuarioResult = await sql.query`
-      SELECT id FROM Usuarios WHERE correo = ${correo}
-    `;
+    const usuarioResult = await sql.query`SELECT id FROM Usuarios WHERE correo = ${correo}`;
     const usuarioId = usuarioResult.recordset[0]?.id;
     if (!usuarioId) return res.status(404).send("Usuario no encontrado");
 
-    const compras = await sql.query`
-      SELECT C.fecha, P.nombre, DC.cantidad, DC.precio_unitario
-      FROM Compras C
-      JOIN DetalleCompra DC ON C.id = DC.compra_id
-      JOIN Productos P ON P.id = DC.producto_id
-      WHERE C.usuario_id = ${usuarioId}
-      ORDER BY C.fecha DESC
-    `;
-
-    res.render("historial", { compras: compras.recordset, correo });
-  } catch (error) {
-    console.error("Error al obtener historial:", error);
-    res.status(500).send("Error al cargar historial.");
-  }
-});
-
-// Historial de compras de un usuario
-app.get("/historial", async (req, res) => {
-  const correo = req.query.correo;
-
-  try {
-    await sql.connect(config);
-
-    const usuarioResult = await sql.query`
-      SELECT id FROM Usuarios WHERE correo = ${correo}
-    `;
-    const usuarioId = usuarioResult.recordset[0]?.id;
-    if (!usuarioId) return res.status(404).send("Usuario no encontrado");
     await registrarAuditoria(correo, "Visualizó su historial de compras", req.ip, req.headers['user-agent']);
 
     const compras = await sql.query`
@@ -200,7 +145,7 @@ app.get("/historial", async (req, res) => {
   }
 });
 
-let carritoTemporal = {}; // puedes luego hacer que sea por usuario
+let carritoTemporal = {};
 
 app.get("/carrito", (req, res) => {
   const carrito = Object.values(carritoTemporal);
@@ -212,14 +157,10 @@ app.post("/carrito/agregar", async (req, res) => {
 
   try {
     await sql.connect(config);
-    const productoResult = await sql.query`
-      SELECT * FROM Productos WHERE id = ${productoId}
-    `;
+    const productoResult = await sql.query`SELECT * FROM Productos WHERE id = ${productoId}`;
     const producto = productoResult.recordset[0];
-
     if (!producto) return res.status(404).send("Producto no encontrado");
 
-    // Agregar al carrito (carrito simple en memoria)
     if (carritoTemporal[productoId]) {
       carritoTemporal[productoId].cantidad += parseInt(cantidad);
     } else {
@@ -243,26 +184,27 @@ app.get("/checkout", (req, res) => {
   res.render("checkout", { carrito });
 });
 
+app.get("/productos", async (req, res) => {
+  try {
+    await sql.connect(config);
+    const result = await sql.query("SELECT * FROM Productos");
+    res.render("productos", { productos: result.recordset });
+  } catch (error) {
+    res.status(500).send("Error al cargar productos.");
+  }
+});
+
 
 app.post("/finalizar-compra", async (req, res) => {
   const correo = req.body.correo;
 
   try {
     await sql.connect(config);
-
-    const usuario = await sql.query`
-      SELECT id FROM Usuarios WHERE correo = ${correo}
-    `;
-
-    if (usuario.recordset.length === 0)
-      return res.status(404).send("Usuario no encontrado");
+    const usuario = await sql.query`SELECT id FROM Usuarios WHERE correo = ${correo}`;
+    if (usuario.recordset.length === 0) return res.status(404).send("Usuario no encontrado");
 
     const usuarioId = usuario.recordset[0].id;
-
-    const compra = await sql.query`
-      INSERT INTO Compras (usuario_id) OUTPUT INSERTED.id VALUES (${usuarioId})
-    `;
-
+    const compra = await sql.query`INSERT INTO Compras (usuario_id) OUTPUT INSERTED.id VALUES (${usuarioId})`;
     const compraId = compra.recordset[0].id;
 
     for (const p of Object.values(carritoTemporal)) {
@@ -272,10 +214,8 @@ app.post("/finalizar-compra", async (req, res) => {
       `;
     }
 
-    // Registrar auditoría
     await registrarAuditoria(correo, "Realizó una compra", req.ip, req.headers['user-agent']);
-
-    carritoTemporal = {}; // Vaciar carrito
+    carritoTemporal = {};
     res.send("Compra realizada con éxito");
   } catch (error) {
     console.error("Error al finalizar compra:", error);
@@ -283,9 +223,6 @@ app.post("/finalizar-compra", async (req, res) => {
   }
 });
 
-
 app.listen(3000, () => {
   console.log("Servidor iniciado en http://localhost:3000");
 });
-
-

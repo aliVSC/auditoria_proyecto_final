@@ -2,30 +2,84 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Productos - AUTHENTIC</title>
+  <title>Catálogo de Productos - AUTHENTIC</title>
   <link rel="stylesheet" href="/css/estilos.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+    }
+    .contenedor {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .producto {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .producto h3 {
+      margin-top: 0;
+    }
+    .producto p {
+      margin: 10px 0;
+    }
+    .producto form input[type="number"] {
+      width: 60px;
+    }
+    .producto button {
+      margin-top: 10px;
+      padding: 5px 15px;
+      background-color: black;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .producto button:hover {
+      background-color: #333;
+    }
+  </style>
 </head>
 <body>
-  <header><h1>AUTHENTIC - Productos</h1></header>
-  <h2>Catálogo</h2>
+  <div class="contenedor">
+    <h1>Catálogo de Productos</h1>
 
-  <div class="productos" style="max-width: 800px; margin: auto;">
-    <% productos.forEach(p => { %>
-      <div class="producto" style="border: 1px solid #ccc; margin: 15px 0; padding: 15px; border-radius: 5px;">
-        <h3><%= p.nombre %></h3>
-        <p><%= p.descripcion %></p>
-        <p><strong>Precio:</strong> $<%= p.precio.toFixed(2) %></p>
+    <div class="grid">
+      <% if (productos.length === 0) { %>
+        <p>No hay productos disponibles.</p>
+      <% } else { %>
+        <% productos.forEach(producto => { %>
+          <div class="producto">
+            <h3><%= producto.nombre %></h3>
+            <p><%= producto.descripcion %></p>
+            <p><strong>Precio:</strong> $<%= producto.precio %></p>
+            <p><strong>Stock:</strong> <%= producto.stock %> unidades</p>
 
-        <form action="/comprar" method="POST">
-          <input type="hidden" name="productoId" value="<%= p.id %>">
-          <input type="email" name="usuarioCorreo" required placeholder="Tu correo para registrar la compra">
-          <input type="number" name="cantidad" min="1" max="<%= p.stock %>" value="1" required>
-          <button type="submit">Comprar</button>
-        </form>
-      </div>
-    <% }); %>
+            <form method="POST" action="/carrito/agregar">
+              <input type="hidden" name="productoId" value="<%= producto.id %>">
+              <label>Cantidad:</label>
+              <input type="number" name="cantidad" min="1" max="<%= producto.stock %>" value="1" required>
+              <button type="submit">Agregar al carrito</button>
+            </form>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <br><br>
+    <a href="/carrito">🛒 Ver carrito</a>
   </div>
-
-  <footer><p>© 2025 AUTHENTIC</p></footer>
 </body>
 </html>

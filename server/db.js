@@ -1,14 +1,13 @@
-require('dotenv').config();
-const sql = require('mssql');
-
-const config = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  server: process.env.DB_SERVER,
-  database: process.env.DB_NAME,
+// db.js
+module.exports.config = {
+  user: "sa",
+  password: "12345",
+  server: "localhost",
+  port: 1433, // Este valor es obligatorio si estás viendo errores de conexión
+  database: "TiendaAuthentic",
   options: {
+    encrypt: false, // o true si usas Azure
     trustServerCertificate: true,
   }
 };
 
-module.exports = { sql, config };
