@@ -1,4 +1,3 @@
-// index.js
 const express = require("express");
 const path = require("path");
 const sql = require("mssql");
@@ -7,6 +6,7 @@ const cors = require("cors");
 require("dotenv").config();
 const { config } = require("./db");
 const { registrarAuditoria } = require("./auditoria");
+const nodemailer = require("nodemailer");
 
 const app = express();
 app.use(cors());
@@ -17,8 +17,16 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../views"));
 app.use(express.static(path.join(__dirname, "../public")));
 
+let carritoTemporal = {};
+
+// ------------------ RUTAS ------------------
+
 app.get("/", (req, res) => {
-  res.redirect("/registro");
+  if (req.query.exito === "1") {
+    res.send("<p style='text-align:center;color:green;'>✅ ¡Compra realizada con éxito! Revisa tu correo para la factura.</p>");
+  } else {
+    res.redirect("/registro");
+  }
 });
 
 app.get("/registro", (req, res) => {
@@ -28,7 +36,7 @@ app.get("/registro", (req, res) => {
 app.post("/registro", async (req, res) => {
   const { cedula, nombres, apellidos, fechaNacimiento, correo, contrasena } = req.body;
   const ip = req.ip;
-  const navegador = req.headers['user-agent'];
+  const navegador = req.headers["user-agent"];
 
   try {
     await sql.connect(config);
@@ -41,7 +49,7 @@ app.post("/registro", async (req, res) => {
       VALUES (${cedula}, ${nombres}, ${apellidos}, ${fechaNacimiento}, ${correo}, ${contrasena})
     `;
 
-    await registrarAuditoria(correo, 'Registro de nuevo usuario', ip, navegador);
+    await registrarAuditoria(correo, "Registro de nuevo usuario", ip, navegador);
     res.redirect("/login");
   } catch (error) {
     console.error("Error en registro:", error);
@@ -56,7 +64,7 @@ app.get("/login", (req, res) => {
 app.post("/login", async (req, res) => {
   const { correo, contrasena } = req.body;
   const ip = req.ip;
-  const navegador = req.headers['user-agent'];
+  const navegador = req.headers["user-agent"];
 
   try {
     await sql.connect(config);
@@ -65,7 +73,7 @@ app.post("/login", async (req, res) => {
     `;
 
     if (result.recordset.length > 0) {
-      await registrarAuditoria(correo, 'Inicio de sesión', ip, navegador);
+      await registrarAuditoria(correo, "Inicio de sesión", ip, navegador);
       res.redirect("/informacion.html");
     } else {
       res.status(401).send("Correo o contraseña incorrectos.");
@@ -89,7 +97,7 @@ app.get("/productos", async (req, res) => {
 app.post("/comprar", async (req, res) => {
   const { usuarioCorreo, productoId, cantidad } = req.body;
   const ip = req.ip;
-  const navegador = req.headers['user-agent'];
+  const navegador = req.headers["user-agent"];
 
   try {
     await sql.connect(config);
@@ -127,7 +135,7 @@ app.get("/historial", async (req, res) => {
     const usuarioId = usuarioResult.recordset[0]?.id;
     if (!usuarioId) return res.status(404).send("Usuario no encontrado");
 
-    await registrarAuditoria(correo, "Visualizó su historial de compras", req.ip, req.headers['user-agent']);
+    await registrarAuditoria(correo, "Visualizó su historial de compras", req.ip, req.headers["user-agent"]);
 
     const compras = await sql.query`
       SELECT C.fecha, P.nombre, DC.cantidad, DC.precio_unitario
@@ -144,8 +152,6 @@ app.get("/historial", async (req, res) => {
     res.status(500).send("Error al cargar historial.");
   }
 });
-
-let carritoTemporal = {};
 
 app.get("/carrito", (req, res) => {
   const carrito = Object.values(carritoTemporal);
@@ -184,19 +190,8 @@ app.get("/checkout", (req, res) => {
   res.render("checkout", { carrito });
 });
 
-app.get("/productos", async (req, res) => {
-  try {
-    await sql.connect(config);
-    const result = await sql.query("SELECT * FROM Productos");
-    res.render("productos", { productos: result.recordset });
-  } catch (error) {
-    res.status(500).send("Error al cargar productos.");
-  }
-});
-
-
 app.post("/finalizar-compra", async (req, res) => {
-  const correo = req.body.correo;
+  const { correo, metodo_pago } = req.body;
 
   try {
     await sql.connect(config);
@@ -204,8 +199,22 @@ app.post("/finalizar-compra", async (req, res) => {
     if (usuario.recordset.length === 0) return res.status(404).send("Usuario no encontrado");
 
     const usuarioId = usuario.recordset[0].id;
-    const compra = await sql.query`INSERT INTO Compras (usuario_id) OUTPUT INSERTED.id VALUES (${usuarioId})`;
+    const compra = await sql.query`
+      INSERT INTO Compras (usuario_id, correo, metodo_pago)
+      OUTPUT INSERTED.id
+      VALUES (${usuarioId}, ${correo}, ${metodo_pago})
+    `;
     const compraId = compra.recordset[0].id;
+
+    let total = 0;
+    const detalleHTML = Object.values(carritoTemporal).map(p => {
+      const subtotal = p.precio * p.cantidad;
+      total += subtotal;
+      return `<li>${p.nombre} x${p.cantidad} - $${subtotal.toFixed(2)}</li>`;
+    }).join("");
+
+    const iva = total * 0.15;
+    const totalConIVA = total + iva;
 
     for (const p of Object.values(carritoTemporal)) {
       await sql.query`
@@ -214,14 +223,42 @@ app.post("/finalizar-compra", async (req, res) => {
       `;
     }
 
-    await registrarAuditoria(correo, "Realizó una compra", req.ip, req.headers['user-agent']);
+    const contenidoHTML = `
+      <h2>Factura de tu compra en AUTHENTIC</h2>
+      <p><strong>Método de pago:</strong> ${metodo_pago}</p>
+      <ul>${detalleHTML}</ul>
+      <p><strong>Subtotal:</strong> $${total.toFixed(2)}</p>
+      <p><strong>IVA (15%):</strong> $${iva.toFixed(2)}</p>
+      <p><strong>Total a pagar:</strong> $${totalConIVA.toFixed(2)}</p>
+    `;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "alialanuca05@gmail.com",
+        pass: "lrku gler xndn vsgo"
+      }
+    });
+
+    await transporter.sendMail({
+      from: "AUTHENTIC <TU_CORREO@gmail.com>",
+      to: correo,
+      subject: "Factura AUTHENTIC",
+      html: contenidoHTML
+    });
+
+    await registrarAuditoria(correo, "Realizó una compra", req.ip, req.headers["user-agent"]);
+
     carritoTemporal = {};
-    res.send("Compra realizada con éxito");
+    res.redirect("/?exito=1");
+
   } catch (error) {
     console.error("Error al finalizar compra:", error);
     res.status(500).send("Error al procesar la compra.");
   }
 });
+
+// ------------------ INICIAR SERVIDOR ------------------
 
 app.listen(3000, () => {
   console.log("Servidor iniciado en http://localhost:3000");

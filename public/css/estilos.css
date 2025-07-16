@@ -71,3 +71,47 @@ form button:hover {
 footer {
   margin-top: auto;
 }
+
+.boton-carrito {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.boton-carrito a {
+  display: inline-block;
+  background-color: #000;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.boton-carrito a:hover {
+  background-color: #333;
+}
+
+.boton {
+  display: inline-block;
+  background-color: #000;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.3s;
+  margin: 10px 10px;
+}
+
+.boton:hover {
+  background-color: #333;
+}
+
+.botones-navegacion {
+  text-align: center;
+  margin-top: 30px;
+}
+

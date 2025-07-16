@@ -1,4 +1,3 @@
-// db.js
 module.exports.config = {
   user: "sa",
   password: "12345",

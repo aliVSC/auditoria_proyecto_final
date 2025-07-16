@@ -5,52 +5,76 @@
   <title>Catálogo de Productos - AUTHENTIC</title>
   <link rel="stylesheet" href="/css/estilos.css">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f3f3f3;
-    }
-    .contenedor {
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 20px;
-    }
-    .producto {
-      background: white;
-      border: 1px solid #ddd;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    .producto h3 {
-      margin-top: 0;
-    }
-    .producto p {
-      margin: 10px 0;
-    }
-    .producto form input[type="number"] {
-      width: 60px;
-    }
-    .producto button {
-      margin-top: 10px;
-      padding: 5px 15px;
-      background-color: black;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .producto button:hover {
-      background-color: #333;
-    }
-  </style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f3f3f3;
+  }
+  .contenedor {
+    max-width: 1300px;
+    margin: auto;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 32px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .producto {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .producto:hover {
+    transform: scale(1.02);
+  }
+  .producto img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .producto h3 {
+    margin: 10px 0 5px;
+    font-size: 18px;
+  }
+  .producto p {
+    margin: 4px 0;
+  }
+  .producto form {
+    margin-top: 10px;
+  }
+  .producto form input[type="number"] {
+    width: 60px;
+    padding: 5px;
+    margin-right: 10px;
+  }
+  .producto button {
+    margin-top: 10px;
+    padding: 8px 20px;
+    background-color: #000;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .producto button:hover {
+    background-color: #333;
+  }
+</style>
+
 </head>
 <body>
   <div class="contenedor">
@@ -62,16 +86,24 @@
       <% } else { %>
         <% productos.forEach(producto => { %>
           <div class="producto">
+            <% if (producto.imagen) { %>
+              <img src="/img/productos/<%= producto.imagen %>" alt="<%= producto.nombre %>">
+            <% } else { %>
+              <img src="/img/no-image.png" alt="Sin imagen">
+            <% } %>
+
             <h3><%= producto.nombre %></h3>
             <p><%= producto.descripcion %></p>
-            <p><strong>Precio:</strong> $<%= producto.precio %></p>
+            <p><strong>Precio:</strong> $<%= producto.precio.toFixed(2) %></p>
             <p><strong>Stock:</strong> <%= producto.stock %> unidades</p>
 
             <form method="POST" action="/carrito/agregar">
               <input type="hidden" name="productoId" value="<%= producto.id %>">
               <label>Cantidad:</label>
               <input type="number" name="cantidad" min="1" max="<%= producto.stock %>" value="1" required>
-              <button type="submit">Agregar al carrito</button>
+              <button type="submit">
+                🛒 Agregar al carrito
+              </button>
             </form>
           </div>
         <% }) %>
@@ -79,7 +111,9 @@
     </div>
 
     <br><br>
-    <a href="/carrito">🛒 Ver carrito</a>
+    <div class="boton-carrito">
+      <a href="/carrito">🛒 Ver carrito</a>
+    </div>
   </div>
 </body>
 </html>

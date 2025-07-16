@@ -7,13 +7,20 @@
 </head>
 <body>
   <header><h1>AUTHENTIC</h1></header>
-  <h2>Confirmación de Compra</h2>
+  <h2 style="text-align: center;">Confirmación de Compra</h2>
 
   <form action="/finalizar-compra" method="POST" style="text-align: center;">
     <label for="correo">Tu correo:</label>
-    <input type="email" name="correo" id="correo" required>
+    <input type="email" name="correo" id="correo" required><br><br>
 
-    <table style="margin:auto;">
+    <label for="metodo_pago">Método de pago:</label>
+    <select name="metodo_pago" id="metodo_pago" required>
+      <option value="efectivo">Efectivo</option>
+      <option value="transferencia">Transferencia</option>
+    </select>
+
+    <br><br>
+    <table style="margin:auto; border-collapse: collapse;">
       <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
       <% let total = 0; %>
       <% carrito.forEach(p => { 
@@ -29,7 +36,12 @@
       <% }); %>
     </table>
 
-    <h3>Total: $<%= total.toFixed(2) %></h3>
+    <% let iva = total * 0.15; %>
+    <% let totalConIVA = total + iva; %>
+    <h3>Subtotal: $<%= total.toFixed(2) %></h3>
+    <h3>IVA (15%): $<%= iva.toFixed(2) %></h3>
+    <h3>Total con IVA: $<%= totalConIVA.toFixed(2) %></h3>
+
     <button type="submit">Confirmar Compra</button>
   </form>
 
