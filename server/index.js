@@ -29,6 +29,7 @@ app.get("/", (req, res) => {
   }
 });
 
+// Registro de usuario
 app.get("/registro", (req, res) => {
   res.render("registro");
 });
@@ -49,14 +50,27 @@ app.post("/registro", async (req, res) => {
       VALUES (${cedula}, ${nombres}, ${apellidos}, ${fechaNacimiento}, ${correo}, ${contrasena})
     `;
 
-    await registrarAuditoria(correo, "Registro de nuevo usuario", ip, navegador);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Registro de nuevo usuario",
+      ip,
+      navegador
+    });
     res.redirect("/login");
   } catch (error) {
     console.error("Error en registro:", error);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Error en registro de usuario",
+      ip,
+      navegador,
+      error: error.message
+    });
     res.status(500).send("Error al registrar usuario.");
   }
 });
 
+// Login
 app.get("/login", (req, res) => {
   res.render("login");
 });
@@ -73,17 +87,36 @@ app.post("/login", async (req, res) => {
     `;
 
     if (result.recordset.length > 0) {
-      await registrarAuditoria(correo, "Inicio de sesión", ip, navegador);
+      await registrarAuditoria({
+        usuario: correo,
+        accion: "Inicio de sesión exitoso",
+        ip,
+        navegador
+      });
       res.redirect("/informacion.html");
     } else {
+      await registrarAuditoria({
+        usuario: correo,
+        accion: "Intento fallido de inicio de sesión",
+        ip,
+        navegador
+      });
       res.status(401).send("Correo o contraseña incorrectos.");
     }
   } catch (error) {
     console.error("Error en login:", error);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Error en login",
+      ip,
+      navegador,
+      error: error.message
+    });
     res.status(500).send("Error en el servidor.");
   }
 });
 
+// Productos
 app.get("/productos", async (req, res) => {
   try {
     await sql.connect(config);
@@ -94,6 +127,20 @@ app.get("/productos", async (req, res) => {
   }
 });
 
+// Registrar clic en producto
+app.post("/producto/clic", async (req, res) => {
+  const { correo, producto } = req.body;
+  await registrarAuditoria({
+    usuario: correo || "Invitado",
+    accion: "Clic en producto",
+    ip: req.ip,
+    navegador: req.headers["user-agent"],
+    producto
+  });
+  res.send("Clic registrado");
+});
+
+// Comprar producto individual
 app.post("/comprar", async (req, res) => {
   const { usuarioCorreo, productoId, cantidad } = req.body;
   const ip = req.ip;
@@ -118,14 +165,30 @@ app.post("/comprar", async (req, res) => {
       VALUES (${compraId}, ${productoId}, ${cantidad}, ${precioUnitario})
     `;
 
-    await registrarAuditoria(usuarioCorreo, `Compra realizada (Producto ${productoId}, cantidad ${cantidad})`, ip, navegador);
+    await registrarAuditoria({
+      usuario: usuarioCorreo,
+      accion: "Compra realizada (compra individual)",
+      ip,
+      navegador,
+      producto: producto.nombre,
+      cantidad
+    });
+
     res.send("Compra realizada con éxito");
   } catch (error) {
     console.error("Error en la compra:", error);
+    await registrarAuditoria({
+      usuario: usuarioCorreo,
+      accion: "Error en compra individual",
+      ip,
+      navegador,
+      error: error.message
+    });
     res.status(500).send("Error al realizar compra.");
   }
 });
 
+// Historial
 app.get("/historial", async (req, res) => {
   const correo = req.query.correo;
 
@@ -135,7 +198,12 @@ app.get("/historial", async (req, res) => {
     const usuarioId = usuarioResult.recordset[0]?.id;
     if (!usuarioId) return res.status(404).send("Usuario no encontrado");
 
-    await registrarAuditoria(correo, "Visualizó su historial de compras", req.ip, req.headers["user-agent"]);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Visualizó su historial de compras",
+      ip: req.ip,
+      navegador: req.headers["user-agent"]
+    });
 
     const compras = await sql.query`
       SELECT C.fecha, P.nombre, DC.cantidad, DC.precio_unitario
@@ -153,6 +221,7 @@ app.get("/historial", async (req, res) => {
   }
 });
 
+// Carrito
 app.get("/carrito", (req, res) => {
   const carrito = Object.values(carritoTemporal);
   res.render("carrito", { carrito });
@@ -178,6 +247,15 @@ app.post("/carrito/agregar", async (req, res) => {
       };
     }
 
+    await registrarAuditoria({
+      usuario: "Invitado",
+      accion: "Agregó producto al carrito",
+      ip: req.ip,
+      navegador: req.headers["user-agent"],
+      producto: producto.nombre,
+      cantidad
+    });
+
     res.redirect("/carrito");
   } catch (err) {
     console.error("Error al agregar al carrito:", err);
@@ -185,11 +263,13 @@ app.post("/carrito/agregar", async (req, res) => {
   }
 });
 
+// Checkout
 app.get("/checkout", (req, res) => {
   const carrito = Object.values(carritoTemporal);
   res.render("checkout", { carrito });
 });
 
+// Finalizar compra
 app.post("/finalizar-compra", async (req, res) => {
   const { correo, metodo_pago } = req.body;
 
@@ -240,26 +320,51 @@ app.post("/finalizar-compra", async (req, res) => {
       }
     });
 
-    await transporter.sendMail({
-      from: "AUTHENTIC <TU_CORREO@gmail.com>",
-      to: correo,
-      subject: "Factura AUTHENTIC",
-      html: contenidoHTML
-    });
+    try {
+      await transporter.sendMail({
+        from: "AUTHENTIC <TU_CORREO@gmail.com>",
+        to: correo,
+        subject: "Factura AUTHENTIC",
+        html: contenidoHTML
+      });
+    } catch (err) {
+      await registrarAuditoria({
+        usuario: correo,
+        accion: "Error en envío de PDF",
+        ip: req.ip,
+        navegador: req.headers["user-agent"],
+        error: err.message
+      });
+      throw err;
+    }
 
-    await registrarAuditoria(correo, "Realizó una compra", req.ip, req.headers["user-agent"]);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Realizó una compra",
+      ip: req.ip,
+      navegador: req.headers["user-agent"],
+      metodo_pago,
+      producto: Object.values(carritoTemporal).map(p => p.nombre).join(", "),
+      cantidad: Object.values(carritoTemporal).reduce((sum, p) => sum + p.cantidad, 0)
+    });
 
     carritoTemporal = {};
     res.redirect("/?exito=1");
 
   } catch (error) {
     console.error("Error al finalizar compra:", error);
+    await registrarAuditoria({
+      usuario: correo,
+      accion: "Error al finalizar compra",
+      ip: req.ip,
+      navegador: req.headers["user-agent"],
+      error: error.message
+    });
     res.status(500).send("Error al procesar la compra.");
   }
 });
 
 // ------------------ INICIAR SERVIDOR ------------------
-
 app.listen(3000, () => {
   console.log("Servidor iniciado en http://localhost:3000");
 });
